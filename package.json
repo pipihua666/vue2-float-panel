@@ -1,6 +1,6 @@
 {
   "name": "vue2-float-panel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A panel that floats at the bottom of a page and can be dragged up or down to browse content. It is often used to provide additional functionality or information.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",

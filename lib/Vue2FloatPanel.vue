@@ -3,9 +3,7 @@
     class="float-panel__container"
     ref="container"
     :style="{
-      transform: translation
-        ? `translateY(${translation}px)`
-        : `translateY(calc(${floatPanelHeaderHeight}) * -1))`
+      transform: `translateY(${translation}px)`
     }"
   >
     <transition name="fade">
@@ -17,12 +15,12 @@
       ></div>
     </transition>
     <div class="float-panel" ref="float-panel">
+      <div class="float-panel__header" ref="float-panel__header" />
       <div
-        class="float-panel__header"
+        class="float-panel__touch"
         @touchstart="onTouchStart"
         @touchmove="onTouchMove"
         @touchend="onTouchEnd"
-        ref="float-panel__header"
       />
       <slot></slot>
     </div>
@@ -59,15 +57,10 @@ export default {
   },
   computed: {
     isReachTop() {
-      return (
-        !!this.translation && this.translation <= this.floatPanelHeight * -1
-      )
+      return this.translation <= this.floatPanelHeight * -1
     },
     isReachBottom() {
-      return (
-        !!this.translation &&
-        this.translation >= this.floatPanelHeaderHeight * -1
-      )
+      return this.translation >= this.floatPanelHeaderHeight * -1
     }
   },
   mounted() {
@@ -75,6 +68,7 @@ export default {
     const floatPanel = this.$refs['float-panel']
     this.floatPanelHeaderHeight = floatPanelHeader.clientHeight
     this.floatPanelHeight = floatPanel.clientHeight
+    this.translation = this.floatPanelHeaderHeight * -1
   },
   methods: {
     resetPanel() {
@@ -82,17 +76,16 @@ export default {
         return
       }
       this.translation = this.floatPanelHeaderHeight * -1
+      this.$nextTick(() => {
+        this.$emit('moveToBottom')
+      })
     },
     openPanel() {
       this.translation = this.floatPanelHeight * -1
     },
     onTouchStart(event) {
       this.startY = event.touches[0].clientY
-      const container = this.$refs.container
-      const touchDuration = getComputedStyle(container).getPropertyValue(
-        '--float-panel-touch-duration'
-      )
-      container.style['transition-duration'] = `${touchDuration}`
+      this.setDuration()
     },
     onTouchMove(event) {
       const moveY = event.touches[0].clientY
@@ -109,30 +102,36 @@ export default {
       const halfFloatPanelHeight = this.floatPanelHeight / 2
       let autoTranslation = 0
       const finalTranslation = Math.abs(this.translation)
-
-      // 移动高度小于浮动弹窗一半
-      if (
-        finalTranslation < this.floatPanelHeaderHeight ||
-        finalTranslation < halfFloatPanelHeight
-      ) {
-        autoTranslation = this.floatPanelHeaderHeight * -1
-        this.$nextTick(() => {
-          this.$emit('moveToBottom')
-        })
-      }
       // 移动高度大于浮动弹窗一半
-      else if (finalTranslation >= halfFloatPanelHeight) {
+      if (finalTranslation >= halfFloatPanelHeight) {
         autoTranslation = this.floatPanelHeight * -1
         this.$nextTick(() => {
           this.$emit('moveToTop')
         })
       }
+      // 移动高度小于浮动弹窗一半
+      else {
+        autoTranslation = this.floatPanelHeaderHeight * -1
+        this.$nextTick(() => {
+          this.$emit('moveToBottom')
+        })
+      }
+      this.translation = autoTranslation
+      this.resetDuration()
+    },
+    setDuration() {
+      const container = this.$refs.container
+      const touchDuration = getComputedStyle(container).getPropertyValue(
+        '--float-panel-touch-duration'
+      )
+      container.style['transition-duration'] = `${touchDuration}`
+    },
+    resetDuration() {
       const container = this.$refs.container
       const initDuration = getComputedStyle(container).getPropertyValue(
         '--float-panel-init-duration'
       )
       container.style['transition-duration'] = `${initDuration}`
-      this.translation = autoTranslation
     }
   }
 }
@@ -156,17 +155,28 @@ export default {
   transform: translateY(calc(var(--float-panel-start-height) * -1));
 }
 
-.float-panel__header {
+.float-panel__touch {
   width: 100%;
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: var(--float-panel-start-height);
+  height: 50px;
   z-index: 10;
   &:hover {
     cursor: grab;
   }
+}
+
+.float-panel__header {
+  height: var(--float-panel-start-height);
+  visibility: hidden;
+  user-select: none;
+  pointer-events: none;
+  width: 100%;
+  position: absolute;
+  z-index: 0;
+  top: 0;
 }
 
 .float-panel {
